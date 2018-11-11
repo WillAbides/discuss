@@ -46,6 +46,8 @@ type rt struct {
 	lchan         chan struct{}
 }
 
+var maxPages int
+
 func (t *rt) RoundTrip(req *http.Request) (*http.Response, error) {
 	t.lchan <- struct{}{}
 	bodyBytes, err := ioutil.ReadAll(req.Body)
@@ -74,6 +76,7 @@ func getTeamDiscussions(ctx context.Context, org string, targetTime time.Time, l
 
 	client := newGraphqlClient(token, loading, graphqlURL)
 
+	pageCount := 0
 	for {
 		err := client.Query(ctx, &query, variables)
 		if err != nil {
@@ -86,6 +89,10 @@ func getTeamDiscussions(ctx context.Context, org string, targetTime time.Time, l
 			break
 		}
 		variables["cursor"] = query.Organization.Teams.PageInfo.EndCursor
+		pageCount++
+		if maxPages > 0 && pageCount >= maxPages {
+			break
+		}
 	}
 	close(loading)
 

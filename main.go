@@ -4,8 +4,21 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"strconv"
 	"time"
 )
+
+func init() {
+	mp := os.Getenv("DISCUSS_MAX_PAGES")
+	if mp == "" {
+		return
+	}
+	mpi, err := strconv.Atoi(mp)
+	if err != nil {
+		return
+	}
+	maxPages = mpi
+}
 
 func main() {
 	if len(os.Args) != 2 {
@@ -26,7 +39,6 @@ func main() {
 		return getTeamDiscussions(ctx, org, lastMonth, loadingChan, token, graphqlURL)
 	}
 	err := runUI(loadingChan, discFunc)
-	fmt.Println("foo")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "got an error:\n%s", err.Error())
 		os.Exit(1)
