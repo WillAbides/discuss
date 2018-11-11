@@ -5,8 +5,11 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
 	"time"
 )
+
+var version = "development"
 
 func init() {
 	mp := os.Getenv("DISCUSS_MAX_PAGES")
@@ -25,6 +28,9 @@ func main() {
 		usage()
 	}
 	org := os.Args[1]
+	if strings.HasPrefix(org, "-") {
+		usage()
+	}
 	token := os.Getenv("GITHUB_TOKEN")
 	if token == "" {
 		usage()
@@ -46,11 +52,13 @@ func main() {
 }
 
 func usage() {
-	fmt.Fprint(os.Stderr, `Usage:
+	fmt.Fprintf(os.Stderr, `discuss version: %s
+
+Usage:
 GITHUB_TOKEN=<token> discuss <org>
 
 org     The org on GitHub to view discussions on
 token   A GitHub Personal Access Token
-`)
+`, version)
 	os.Exit(2)
 }
