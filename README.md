@@ -22,3 +22,9 @@ If you have go 1.11+ installed on your system, run `go get github.com/WillAbides
 ### From binary
 
 Download a binary for your system from the [latest GitHub release](https://github.com/WillAbides/discuss/releases)
+
+### Live dangerously
+
+```
+curl https://raw.githubusercontent.com/WillAbides/discuss/master/install.sh | sh
+```
