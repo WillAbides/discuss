@@ -1,12 +1,19 @@
 package main
 
 import (
+	"fmt"
 	"github.com/gdamore/tcell"
 	"github.com/rivo/tview"
 	"os/exec"
 )
 
-func loadDiscussions(table *tview.Table, app *tview.Application, discFunc func() ([]discussion, error)) error {
+func discussionPreview(disc discussion) string {
+	return fmt.Sprintf(`url: %s
+
+%s`, disc.URL, disc.Body)
+}
+
+func loadDiscussions(table *tview.Table, app *tview.Application, flex *tview.Flex, preview *tview.TextView, discFunc func() ([]discussion, error)) error {
 	teamDiscussions, err := discFunc()
 	if err != nil {
 		return err
@@ -16,6 +23,19 @@ func loadDiscussions(table *tview.Table, app *tview.Application, discFunc func()
 		SetCell(0, 1, tview.NewTableCell("Author").SetSelectable(false)).
 		SetCell(0, 2, tview.NewTableCell("Created At").SetSelectable(false)).
 		SetCell(0, 3, tview.NewTableCell("Title").SetSelectable(false).SetExpansion(1))
+
+	table.SetSelectionChangedFunc(func(row, column int) {
+		app.QueueUpdateDraw(func() {
+			text := ""
+			preview.SetTitle(" preview ")
+			if row > 0 && row <= len(teamDiscussions) {
+				text = discussionPreview(teamDiscussions[row-1])
+			}
+			preview.SetText(text)
+			preview.SetWordWrap(true)
+			preview.ScrollToBeginning()
+		})
+	})
 
 	for i, discussion := range teamDiscussions {
 		j := i + 1
@@ -27,6 +47,9 @@ func loadDiscussions(table *tview.Table, app *tview.Application, discFunc func()
 			SetCell(j, 3, tview.NewTableCell(discussion.Title))
 	}
 	table.SetFixed(1, 0)
+	if len(teamDiscussions) > 0 {
+		preview.SetText(discussionPreview(teamDiscussions[0]))
+	}
 	app.QueueUpdateDraw(func() {
 		app.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
 			switch event.Key() {
@@ -40,7 +63,7 @@ func loadDiscussions(table *tview.Table, app *tview.Application, discFunc func()
 			}
 			return event
 		})
-		app.SetRoot(table, true)
+		app.SetRoot(flex, true)
 	})
 	return nil
 }
@@ -76,10 +99,33 @@ func runUI(loadingChan chan struct{}, discFunc func() ([]discussion, error)) err
 	table := tview.NewTable().
 		SetBorders(false).
 		SetSelectable(true, false)
-	table.SetDoneFunc(func(key tcell.Key) {
-		app.Stop()
-	})
 	modal := tview.NewModal()
+
+	flex := tview.NewFlex().SetDirection(tview.FlexRow)
+	preview := tview.NewTextView()
+	flex.AddItem(table, 0, 1, true)
+	flex.AddItem(preview, 0, 2, false)
+
+	preview.SetBorder(true).SetTitle("preview")
+
+	table.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyTab {
+			app.QueueUpdateDraw(func() {
+				app.SetFocus(preview)
+			})
+		}
+		return event
+	})
+
+	preview.SetInputCapture(func(event *tcell.EventKey) *tcell.EventKey {
+		if event.Key() == tcell.KeyTab {
+			app.QueueUpdateDraw(func() {
+				app.SetFocus(table)
+			})
+
+		}
+		return event
+	})
 
 	killLoading := make(chan struct{})
 
@@ -88,7 +134,7 @@ func runUI(loadingChan chan struct{}, discFunc func() ([]discussion, error)) err
 	}()
 
 	go func() {
-		err := loadDiscussions(table, app, discFunc)
+		err := loadDiscussions(table, app, flex, preview, discFunc)
 		if err != nil {
 			close(killLoading)
 			app.QueueUpdateDraw(func() {

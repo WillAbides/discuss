@@ -33,6 +33,7 @@ type discussion struct {
 	Title     string
 	CreatedAt time.Time
 	URL       string
+	Body      string
 	Team      struct {
 		Name string
 	}
@@ -65,7 +66,7 @@ var query struct {
 	} `graphql:"orgs: organization(login: $login)"`
 }
 
-func getTeamDiscussions(ctx context.Context, org string, targetTime time.Time, loading chan struct{}, token, graphqlURL string) ([]discussion, error) {
+func getTeamDiscussions(ctx context.Context, org, token, graphqlURL string, targetTime time.Time, loading chan struct{}) ([]discussion, error) {
 	var discussions []discussion
 	variables := map[string]interface{}{
 		"login":  graphql.String(org),
