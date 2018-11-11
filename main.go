@@ -36,7 +36,7 @@ func main() {
 	graphqlURL := "https://api.github.com/graphql"
 	var loadingChan = make(chan struct{})
 	discFunc := func() ([]discussion, error) {
-		return getTeamDiscussions(ctx, org, lastMonth, loadingChan, token, graphqlURL)
+		return getTeamDiscussions(ctx, org, token, graphqlURL, lastMonth, loadingChan)
 	}
 	err := runUI(loadingChan, discFunc)
 	if err != nil {
